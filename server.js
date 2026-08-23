@@ -2,7 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
-const Task = require('./models/Task');
+const taskRoutes = require('./models/routes/taskRoutes');
+const authRoutes = require('./models/routes/authRoutes');
 
 const app = express();
 
@@ -19,81 +20,12 @@ app.use((req, res, next) => {
   next();
 });
 
-function validateJsonContentType(req, res, next) {
-  if ((req.method === 'POST' || req.method === 'PUT') && req.headers['content-type'] !== 'application/json') {
-    return res.status(400).json({ error: 'Content-Type must be application/json' });
-  }
-  next();
-}
-
 app.get('/', (req, res) => {
   res.send('Hello,welcome to 24IT026 server');
 });
 
-app.get('/tasks', async (req, res, next) => {
-    try {
-        const tasks = await Task.find();
-        res.status(200).json(tasks);
-    } catch (err) {
-        next(err);
-    }
-});
-
-app.post('/tasks', validateJsonContentType, async (req, res, next) => {
-    try {
-        const { title, description } = req.body;
-        if (!title) {
-            return res.status(400).json({
-                error: 'Title is required'
-            });
-        }
-        const newTask = await Task.create({
-            title,
-            description
-        });
-        res.status(201).json(newTask);
-    } catch (err) {
-        next(err);
-    }
-});
-
-app.put('/tasks/:id', validateJsonContentType, async (req, res, next) => {
-    try {
-        const task = await Task.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            {
-                new: true,
-                runValidators: true
-            }
-        );
-        if (!task) {
-            return res.status(404).json({
-                error: 'Task not found'
-            });
-        }
-        res.status(200).json(task);
-    } catch (err) {
-        next(err);
-    }
-});
-
-app.delete('/tasks/:id', async (req, res, next) => {
-    try {
-        const task = await Task.findByIdAndDelete(req.params.id);
-        if (!task) {
-            return res.status(404).json({
-                error: 'Task not found'
-            });
-        }
-        res.status(200).json({
-            message: 'Task deleted successfully',
-            task: task
-        });
-    } catch (err) {
-        next(err);
-    }
-});
+app.use('/auth', authRoutes);
+app.use('/tasks', taskRoutes);
 app.use((err, req, res, next) => {
     console.error(err);
     // Mongoose validation error
@@ -118,4 +50,4 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(5000, () => console.log('Server running on port 5000'));
+app.listen(process.env.PORT || 5000, () => console.log(`Server running on port ${process.env.PORT || 5000}`));
